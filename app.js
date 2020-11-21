@@ -1,10 +1,10 @@
 //jshint esversion:6
-
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
-const encrypt = require("mongoose-encryption"); 
+const md5 = require("md5"); 
 
 const app = express();
 app.set("view engine", "ejs");
@@ -17,9 +17,6 @@ const userSchema = new mongoose.Schema ({
     email: String,
     password: String,
 });
-
-const secret = "Thisisourlittlesecret.";
-userSchema.plugin(encrypt, {secret: secret, encryptedFields: ["password"]});
 
 const User = new mongoose.model("User", userSchema);
 
@@ -38,7 +35,7 @@ app.get("/register", (req, res) => {
 app.post("/register", async (req,res) => {
     let newUser = new User({
         email: req.body.username,
-        password: req.body.password,
+        password: md5(req.body.password),
     });
     console.log(req.body.username,req.body.password);
     newUser.save( err => {
@@ -56,7 +53,7 @@ app.post("/login", (req, res) => {
         if (err) {
             console.log(err);
         }
-        else if (user.password === req.body.password){
+        else if (user.password === md5(req.body.password)){
             res.render("secrets");
         }
         else {
