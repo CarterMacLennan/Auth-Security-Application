@@ -4,7 +4,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
-const md5 = require("md5"); 
+const bcrypt = require("bcrypt"); 
+const saltRounds = 10;
 
 const app = express();
 app.set("view engine", "ejs");
@@ -33,18 +34,19 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", async (req,res) => {
-    let newUser = new User({
-        email: req.body.username,
-        password: md5(req.body.password),
-    });
-    console.log(req.body.username,req.body.password);
-    newUser.save( err => {
-        if (err){
-            console.log(err);
-        }
-        else {
-            res.render("secrets");
-        }
+    bcrypt.hash(req.body.password, saltRounds, (hash) => {
+        const newUser = new User({
+            email: req.body.username,
+            password: hash
+        });
+        newUser.save( err => {
+            if (err){
+                console.log(err);
+            }
+            else {
+                res.render("secrets");
+            }
+        });
     });
 });
 
@@ -53,8 +55,13 @@ app.post("/login", (req, res) => {
         if (err) {
             console.log(err);
         }
-        else if (user.password === md5(req.body.password)){
-            res.render("secrets");
+        else if (user){
+            bcrypt.compare(req.body.password, user.password, (result) => {
+                if (result)
+                    res.render("secrets");
+                else
+                    console.log("Invalid password");
+            });
         }
         else {
             console.log("Invalid UserName");
